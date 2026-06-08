@@ -1,5 +1,7 @@
 # AI-Driven Code Security Audit System
 
+[繁體中文](README.zh-TW.md) | **English**
+
 A proof-of-concept system that leverages Large Language Models (LLMs) and Retrieval-Augmented Generation (RAG) to automatically detect security vulnerabilities in source code across multiple programming languages.
 
 ## Overview
