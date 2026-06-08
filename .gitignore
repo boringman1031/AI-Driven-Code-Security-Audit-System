@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+
+# 向量資料庫（體積大，不納入版控）
+data/chromadb/
+
+# 掃描報告（個人產出）
+data/reports/
+
+# 評估結果
+data/eval_results/
+
+# 環境設定（含機敏資訊）
+.env
+
+# CVE 資料（可重新抓取）
+knowledge/cve_entries.json
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.dockerignore
+
+# 日誌
+*.log

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureCodeReview — 安全掃描報告</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d;
+      --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
+      --critical: #f85149; --high: #ff7b72; --medium: #e3b341; --low: #3fb950; --safe: #3fb950;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; gap: 0.75rem; }
+    header h1 { font-size: 1.25rem; color: var(--accent); }
+    header span { color: var(--muted); font-size: 0.85rem; }
+    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+
+    /* 摘要卡片 */
+    .meta-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+    .meta-card h2 { font-size: 1rem; color: var(--muted); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+    .meta-item label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .meta-item value { font-size: 1rem; font-weight: 600; color: var(--text); word-break: break-all; }
+
+    /* 風險徽章 */
+    .risk-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
+    .risk-Critical { background: rgba(248,81,73,0.2); color: var(--critical); border: 1px solid var(--critical); }
+    .risk-High     { background: rgba(255,123,114,0.15); color: var(--high); border: 1px solid var(--high); }
+    .risk-Medium   { background: rgba(227,179,65,0.15); color: var(--medium); border: 1px solid var(--medium); }
+    .risk-Low      { background: rgba(63,185,80,0.15); color: var(--low); border: 1px solid var(--low); }
+    .risk-Safe     { background: rgba(63,185,80,0.15); color: var(--safe); border: 1px solid var(--safe); }
+
+    /* 統計列 */
+    .stat-row { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 110px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
+    .stat-card .num { font-size: 2rem; font-weight: 700; }
+    .stat-card .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+    .num-critical { color: var(--critical); }
+    .num-high     { color: var(--high); }
+    .num-medium   { color: var(--medium); }
+    .num-low      { color: var(--low); }
+    .num-total    { color: var(--accent); }
+
+    /* 漏洞卡片 */
+    h2.section-title { font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+    .finding-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1rem; overflow: hidden; }
+    .finding-header { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; cursor: pointer; user-select: none; }
+    .finding-header:hover { background: rgba(255,255,255,0.03); }
+    .finding-header .badge { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 4px; white-space: nowrap; }
+    .badge-Critical { background: rgba(248,81,73,0.2); color: var(--critical); }
+    .badge-High     { background: rgba(255,123,114,0.15); color: var(--high); }
+    .badge-Medium   { background: rgba(227,179,65,0.15); color: var(--medium); }
+    .badge-Low      { background: rgba(63,185,80,0.15); color: var(--low); }
+    .finding-type { font-weight: 600; flex: 1; }
+    .finding-file { font-size: 0.8rem; color: var(--muted); font-family: monospace; }
+    .finding-line { font-size: 0.8rem; color: var(--muted); }
+    .chevron { color: var(--muted); transition: transform 0.2s; }
+    .finding-card.open .chevron { transform: rotate(90deg); }
+    .finding-body { display: none; padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border); }
+    .finding-card.open .finding-body { display: block; }
+    .field-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 1rem 0 0.4rem; }
+    .field-value { font-size: 0.9rem; white-space: pre-wrap; word-break: break-word; }
+    .cwe-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.4rem; }
+    .cwe-tag { background: rgba(88,166,255,0.1); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); border-radius: 4px; padding: 0.15rem 0.5rem; font-size: 0.78rem; font-family: monospace; }
+    pre.fix-code { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; font-size: 0.82rem; overflow-x: auto; line-height: 1.5; margin-top: 0.4rem; white-space: pre-wrap; word-break: break-word; }
+    .no-findings { text-align: center; padding: 3rem; color: var(--low); font-size: 1.1rem; }
+    footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 2rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+  </style>
+</head>
+<body>
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  <h1>SecureCodeReview</h1>
+  <span>AI 驅動的程式碼安全審查報告</span>
+</header>
+
+<div class="container">
+
+  <!-- 掃描資訊 -->
+  <div class="meta-card">
+    <h2>掃描資訊</h2>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <label>掃描 ID</label>
+        <value style="font-family:monospace; font-size:0.85rem;">{{ scan_id }}</value>
+      </div>
+      <div class="meta-item">
+        <label>掃描時間</label>
+        <value>{{ timestamp }}</value>
+      </div>
+      <div class="meta-item">
+        <label>輸入類型</label>
+        <value>{{ metadata.get('input_type', 'N/A') }}</value>
+      </div>
+      <div class="meta-item">
+        <label>LLM 後端</label>
+        <value>{{ metadata.get('backend', 'N/A') }}</value>
+      </div>
+      {% if metadata.get('filename') %}
+      <div class="meta-item">
+        <label>檔案名稱</label>
+        <value>{{ metadata.get('filename') }}</value>
+      </div>
+      {% endif %}
+      {% if metadata.get('url') %}
+      <div class="meta-item">
+        <label>GitHub URL</label>
+        <value>{{ metadata.get('url') }}</value>
+      </div>
+      {% endif %}
+      <div class="meta-item">
+        <label>整體風險</label>
+        <value><span class="risk-badge risk-{{ overall_risk }}">{{ overall_risk }}</span></value>
+      </div>
+    </div>
+  </div>
+
+  <!-- 統計 -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="num num-total">{{ total }}</div>
+      <div class="lbl">漏洞總計</div>
+    </div>
+    <div class="stat-card">
+      <div class="num num-critical">{{ counts.get('Critical', 0) }}</div>
+      <div class="lbl">Critical</div>
+    </div>
+    <div class="stat-card">
+      <div class="num num-high">{{ counts.get('High', 0) }}</div>
+      <div class="lbl">High</div>
+    </div>
+    <div class="stat-card">
+      <div class="num num-medium">{{ counts.get('Medium', 0) }}</div>
+      <div class="lbl">Medium</div>
+    </div>
+    <div class="stat-card">
+      <div class="num num-low">{{ counts.get('Low', 0) }}</div>
+      <div class="lbl">Low</div>
+    </div>
+  </div>
+
+  <!-- 漏洞清單 -->
+  <h2 class="section-title">漏洞詳情</h2>
+
+  {% if findings %}
+    {% for f in findings %}
+    <div class="finding-card" onclick="this.classList.toggle('open')">
+      <div class="finding-header">
+        <span class="badge badge-{{ f.severity }}">{{ f.severity }}</span>
+        <span class="finding-type">{{ f.type }}</span>
+        <span class="finding-file">{{ f.filename }}</span>
+        <span class="finding-line">{{ f.line_hint }}</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="finding-body">
+        <p class="field-label">漏洞說明</p>
+        <p class="field-value">{{ f.explanation }}</p>
+
+        <p class="field-label">CWE 對應</p>
+        <div class="cwe-tags">
+          {% for cwe in f.cwe_references %}
+          <span class="cwe-tag">{{ cwe }}</span>
+          {% else %}
+          <span style="color: var(--muted); font-size:0.85rem;">無</span>
+          {% endfor %}
+        </div>
+
+        <p class="field-label">修復建議</p>
+        <pre class="fix-code">{{ f.fix_suggestion }}</pre>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-findings">✓ 未發現安全漏洞，程式碼通過本次審查。</div>
+  {% endif %}
+
+</div>
+
+<footer>
+  由 SecureCodeReview 自動產生 · {{ timestamp }}
+</footer>
+
+<script>
+  // 點擊卡片開關詳情（已由 onclick 處理，無需額外 JS）
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureCodeReview — AI 程式碼安全審查</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+  <svg class="logo" width="22" height="22" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+  <h1>SecureCodeReview</h1>
+  <p>AI 驅動的程式碼安全審查工具</p>
+</header>
+
+<div class="container">
+
+  <!-- ── 輸入區 ── -->
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="snippet"   onclick="switchTab('snippet')">程式碼片段</button>
+      <button class="tab" data-tab="upload"           onclick="switchTab('upload')">上傳檔案</button>
+      <button class="tab" data-tab="github"           onclick="switchTab('github')">GitHub URL</button>
+      <button class="tab" data-tab="directory"        onclick="switchTab('directory')">目錄掃描</button>
+      <button class="tab" data-tab="history"          onclick="switchTab('history'); loadHistory()">掃描歷史</button>
+    </div>
+
+    <!-- 程式碼片段 -->
+    <div class="tab-content active" id="tab-snippet">
+      <label for="snippet-filename">檔案名稱（選填）</label>
+      <input type="text" id="snippet-filename" placeholder="例如: app.py、UserController.java">
+      <br>
+      <label for="snippet-input" style="margin-top:0.85rem;">程式碼內容</label>
+      <textarea id="snippet-input" placeholder="貼上程式碼到此處..."></textarea>
+    </div>
+
+    <!-- 上傳檔案 -->
+    <div class="tab-content" id="tab-upload">
+      <label for="file-input">選擇程式碼檔案</label>
+      <input type="file" id="file-input"
+             accept=".py,.js,.ts,.jsx,.tsx,.java,.c,.cpp,.cs,.go,.rb,.php,.swift,.kt,.rs,.sh">
+      <p style="margin-top:0.5rem; font-size:0.8rem; color:var(--muted);">
+        支援語言：Python、JavaScript、TypeScript、Java、C/C++、C#、Go、Ruby、PHP、Swift、Kotlin、Rust 等
+      </p>
+    </div>
+
+    <!-- GitHub URL -->
+    <div class="tab-content" id="tab-github">
+      <label for="github-url">GitHub Repository URL</label>
+      <input type="text" id="github-url" placeholder="https://github.com/owner/repo">
+      <p style="margin-top:0.5rem; font-size:0.8rem; color:var(--muted);">
+        將掃描該 Repository 中所有支援的程式碼檔案（最多 30 個）
+      </p>
+    </div>
+
+    <!-- 目錄掃描 -->
+    <div class="tab-content" id="tab-directory">
+      <label for="dir-path">伺服器目錄路徑</label>
+      <input type="text" id="dir-path" placeholder="例如: /app/code 或 C:\projects\myapp">
+      <p style="margin-top:0.5rem; font-size:0.8rem; color:var(--muted);">
+        指定伺服器上的本機目錄，系統將遞迴掃描所有支援語言的程式碼檔案（最多 50 個）
+      </p>
+      <!-- 進度條區塊 -->
+      <div id="dir-progress-wrap" style="display:none; padding: 0.75rem 0;">
+        <div class="progress-label">
+          已掃描 <span id="dir-files-done">0</span> / <span id="dir-files-total">?</span> 個檔案
+        </div>
+        <div class="progress-bar-track">
+          <div id="dir-progress-bar" class="progress-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 掃描歷史 -->
+    <div class="tab-content" id="tab-history">
+      <div id="history-list" style="padding:0.5rem 0; min-height:80px;">
+        <p style="color:var(--muted);font-size:0.85rem;">載入中...</p>
+      </div>
+    </div>
+
+    <!-- 控制列（歷史 Tab 隱藏掃描按鈕） -->
+    <div class="form-row" id="scan-controls" style="padding: 0 1.25rem 1.25rem;">
+      <div class="backend-group">
+        <span>LLM 後端：</span>
+        <input class="radio-btn" type="radio" id="be-openai" name="backend" value="openai" checked>
+        <label class="radio-label" for="be-openai">OpenAI</label>
+        <input class="radio-btn" type="radio" id="be-ollama" name="backend" value="ollama">
+        <label class="radio-label" for="be-ollama">Ollama</label>
+      </div>
+      <div id="alert-error" class="alert-error"></div>
+      <button id="btn-scan" class="btn-scan" onclick="doScan()">
+        🔍 開始掃描
+      </button>
+    </div>
+  </div>
+
+  <!-- ── 狀態列 ── -->
+  <div id="status-bar" class="status-bar">
+    <div class="spinner"></div>
+    <span class="status-msg">正在分析程式碼，請稍候...</span>
+  </div>
+
+  <!-- ── 結果區 ── -->
+  <div id="results">
+    <div class="result-summary">
+      <div class="summary-card">
+        <div class="num num-total" id="num-total">0</div>
+        <div class="lbl">漏洞總計</div>
+      </div>
+      <div class="summary-card">
+        <div class="num num-critical" id="num-critical">0</div>
+        <div class="lbl">Critical</div>
+      </div>
+      <div class="summary-card">
+        <div class="num num-high" id="num-high">0</div>
+        <div class="lbl">High</div>
+      </div>
+      <div class="summary-card">
+        <div class="num num-medium" id="num-medium">0</div>
+        <div class="lbl">Medium</div>
+      </div>
+      <div class="summary-card">
+        <div class="num num-low" id="num-low">0</div>
+        <div class="lbl">Low</div>
+      </div>
+    </div>
+
+    <a id="report-link" class="report-link" href="#" target="_blank"></a>
+
+    <!-- 嚴重度篩選 -->
+    <div class="filter-bar" id="filter-bar" style="display:none;">
+      <span class="filter-lbl">篩選：</span>
+      <button class="filter-btn active" data-sev="All"      onclick="filterFindings('All')">全部</button>
+      <button class="filter-btn" data-sev="Critical"        onclick="filterFindings('Critical')">Critical</button>
+      <button class="filter-btn" data-sev="High"            onclick="filterFindings('High')">High</button>
+      <button class="filter-btn" data-sev="Medium"          onclick="filterFindings('Medium')">Medium</button>
+      <button class="filter-btn" data-sev="Low"             onclick="filterFindings('Low')">Low</button>
+    </div>
+
+    <div id="findings-list"></div>
+  </div>
+
+</div>
+
+<footer>
+  SecureCodeReview · LLM Applications in Cybersecurity · PoC v1.0
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
+        <div class="lbl">Low</div>
+      </div>
+    </div>
+
+    <a id="report-link" class="report-link" href="#" target="_blank"></a>
+
+    <div id="findings-list"></div>
+  </div>
+
+</div>
+
+<footer>
+  SecureCodeReview · LLM Applications in Cybersecurity · PoC v1.0
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

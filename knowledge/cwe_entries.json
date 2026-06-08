@@ -1,0 +1,142 @@
+[
+  {
+    "id": "79",
+    "name": "Improper Neutralization of Input During Web Page Generation (Cross-site Scripting)",
+    "description": "應用程式沒有適當地中和使用者提供的資料，在輸出到動態網頁前未加以過濾，導致攻擊者可以插入惡意腳本（通常是 JavaScript），在受害者瀏覽器中執行。",
+    "impact": "攻擊者可盜取用戶 Cookie、Session Token，進行帳戶劫持、頁面釣魚或分發惡意軟體。",
+    "mitigation": "對所有用戶輸入進行輸出編碼（HTML Encoding）；使用 Content Security Policy (CSP) 頭部；採用現代框架的自動轉義機制（如 React、Vue 的 JSX/template 轉義）。"
+  },
+  {
+    "id": "89",
+    "name": "Improper Neutralization of Special Elements used in an SQL Command (SQL Injection)",
+    "description": "應用程式將使用者提供的資料直接拼接進 SQL 查詢字串，攻擊者可操控查詢邏輯，繞過驗證、存取或篡改資料庫資料，甚至執行作業系統指令。",
+    "impact": "未授權的資料庫讀寫、認證繞過、資料庫整體洩漏、在某些資料庫（如 MSSQL）可執行系統命令。",
+    "mitigation": "使用 Parameterized Queries 或 Prepared Statements；採用 ORM 框架；對使用者輸入進行嚴格白名單驗證；最小化資料庫帳號權限。"
+  },
+  {
+    "id": "78",
+    "name": "Improper Neutralization of Special Elements used in an OS Command (OS Command Injection)",
+    "description": "應用程式將使用者提供的資料未加驗證地傳遞給作業系統命令執行函數（如 system()、exec()、subprocess.call()），攻擊者可注入惡意命令並在伺服器上執行。",
+    "impact": "攻擊者可取得伺服器完整控制權、執行任意命令、讀取機密檔案、建立後門。",
+    "mitigation": "避免使用 shell=True 的命令執行；使用參數化的 API；對輸入進行嚴格白名單驗證；採用最小權限原則執行應用程序。"
+  },
+  {
+    "id": "22",
+    "name": "Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)",
+    "description": "應用程式沒有適當地限制檔案路徑，攻擊者可使用 ../ 等序列遍歷目錄，存取應用程式目錄以外的任意檔案。",
+    "impact": "存取系統敏感檔案（如 /etc/passwd）、原始碼洩漏、設定檔竊取。",
+    "mitigation": "使用 Path.resolve() 後確認路徑以合法基底目錄開頭；避免直接使用用戶輸入構造檔案路徑；使用白名單允許的目錄。"
+  },
+  {
+    "id": "352",
+    "name": "Cross-Site Request Forgery (CSRF)",
+    "description": "已認證用戶在不知情的情況下，被迫執行惡意網站發起的請求。應用程式無法區分合法請求與偽造請求。",
+    "impact": "攻擊者可代替已登入用戶執行轉帳、修改設定、刪除資料等操作。",
+    "mitigation": "實作 CSRF Token（SynchronizerToken 模式）；使用 SameSite Cookie 屬性；驗證 Origin/Referer Header；對敏感操作要求二次確認。"
+  },
+  {
+    "id": "287",
+    "name": "Improper Authentication",
+    "description": "應用程式沒有正確地驗證使用者的身份，允許攻擊者在未驗證或驗證不足的情況下存取資源。",
+    "impact": "未授權的資源存取、帳戶劫持、敏感資料洩漏。",
+    "mitigation": "實作強健的身份驗證機制（MFA）；正確管理 Session 生命週期；採用成熟的認證函式庫。"
+  },
+  {
+    "id": "502",
+    "name": "Deserialization of Untrusted Data",
+    "description": "應用程式對不受信任的資料進行反序列化，攻擊者可傳送惡意構造的序列化物件觸發任意程式碼執行。",
+    "impact": "遠端程式碼執行（RCE）、拒絕服務（DoS）、特權提升。",
+    "mitigation": "避免反序列化不受信任的資料；使用 JSON 等安全格式取代 Pickle/Java Serialization；若必須使用，加入類型白名單。"
+  },
+  {
+    "id": "798",
+    "name": "Use of Hard-coded Credentials",
+    "description": "應用程式使用硬編碼的憑證（密碼、API Key、Token），攻擊者可從原始碼或二進位中提取這些憑證。",
+    "impact": "完全存取任何使用這些憑證的系統；一旦外洩難以撤銷。",
+    "mitigation": "使用環境變數或機密管理服務（如 HashiCorp Vault、AWS Secrets Manager）；在 Git 中使用 .gitignore 排除設定檔；定期輪換憑證。"
+  },
+  {
+    "id": "611",
+    "name": "Improper Restriction of XML External Entity Reference (XXE)",
+    "description": "XML 解析器在處理包含外部實體引用的 XML 文件時，允許攻擊者讀取本地檔案或發起 SSRF 請求。",
+    "impact": "本地檔案讀取、伺服器端請求偽造（SSRF）、拒絕服務（DoS）。",
+    "mitigation": "停用 XML 外部實體與 DTD 處理；使用安全的 XML 解析函式庫設定；改用 JSON 格式傳輸資料。"
+  },
+  {
+    "id": "918",
+    "name": "Server-Side Request Forgery (SSRF)",
+    "description": "應用程式接受用戶提供的 URL 並發起伺服器端請求，攻擊者可讓伺服器存取內部網路、雲端元資料服務等不應公開的資源。",
+    "impact": "存取內部服務（如 AWS 元資料、Redis、Elasticsearch）、RCE、資料洩漏。",
+    "mitigation": "驗證用戶提供的 URL 是否在白名單內；封鎖對私有 IP 範圍的請求；使用網路分割；停用不必要的 URL 重導。"
+  },
+  {
+    "id": "94",
+    "name": "Improper Control of Generation of Code (Code Injection)",
+    "description": "應用程式在沒有充分驗證的情況下，將用戶輸入傳遞給 eval()、exec() 或類似函數動態執行，攻擊者可注入任意程式碼。",
+    "impact": "任意程式碼執行、伺服器完全被控制。",
+    "mitigation": "完全避免使用 eval() 處理不受信任的資料；改用 ast.literal_eval()（Python）；採用白名單驗證所有動態輸入。"
+  },
+  {
+    "id": "434",
+    "name": "Unrestricted Upload of File with Dangerous Type",
+    "description": "應用程式允許使用者上傳任意類型的檔案而不加以限制，攻擊者可上傳惡意腳本（如 .php Webshell）並在伺服器上執行。",
+    "impact": "遠端程式碼執行（Webshell）、伺服器完全被控制。",
+    "mitigation": "驗證檔案 MIME 類型（基於內容，非副檔名）；白名單允許的副檔名；將上傳檔案儲存於 webroot 之外；使用隨機化檔名。"
+  },
+  {
+    "id": "200",
+    "name": "Exposure of Sensitive Information to an Unauthorized Actor",
+    "description": "應用程式在錯誤訊息、日誌、回應中洩漏敏感資訊（如堆疊追蹤、資料庫結構、內部路徑），讓攻擊者獲得偵察資訊。",
+    "impact": "攻擊者取得系統內部資訊，協助進一步攻擊。",
+    "mitigation": "生產環境中關閉詳細錯誤訊息；使用通用錯誤訊息；嚴格控制日誌中的敏感資料；實作適當的存取控制。"
+  },
+  {
+    "id": "306",
+    "name": "Missing Authentication for Critical Function",
+    "description": "應用程式對關鍵功能（如管理介面、API 端點）沒有實作任何身份驗證，任何人都可存取。",
+    "impact": "未授權的完全存取、資料篡改、系統控制。",
+    "mitigation": "對所有敏感端點強制執行身份驗證；採用 API 閘道或中介軟體統一管理驗證；定期進行存取控制審查。"
+  },
+  {
+    "id": "416",
+    "name": "Use After Free",
+    "description": "程式在釋放記憶體後仍然使用指向該記憶體的指標，導致記憶體損毀，攻擊者可利用此漏洞執行任意程式碼。",
+    "impact": "任意程式碼執行、程式崩潰、特權提升。",
+    "mitigation": "釋放記憶體後立即將指標設為 NULL；使用智慧指標（C++ unique_ptr/shared_ptr）；使用 AddressSanitizer 進行測試。"
+  },
+  {
+    "id": "125",
+    "name": "Out-of-bounds Read",
+    "description": "程式在陣列或緩衝區邊界之外讀取資料，可能導致敏感資料洩漏或程式崩潰。",
+    "impact": "敏感記憶體資料洩漏、程式崩潰、資訊洩漏。",
+    "mitigation": "嚴格驗證所有陣列索引；使用安全的字串/緩衝區操作函數；採用 Fuzzing 測試；使用 AddressSanitizer。"
+  },
+  {
+    "id": "787",
+    "name": "Out-of-bounds Write",
+    "description": "程式在陣列或緩衝區邊界之外寫入資料（即緩衝區溢位），攻擊者可覆蓋相鄰記憶體，控制程式執行流程。",
+    "impact": "任意程式碼執行、特權提升、程式崩潰（DoS）。",
+    "mitigation": "使用具有邊界檢查的函數（如 strncpy、snprintf）；採用記憶體安全語言；啟用編譯器保護（Stack Canaries、ASLR、PIE）。"
+  },
+  {
+    "id": "190",
+    "name": "Integer Overflow or Wraparound",
+    "description": "整數運算的結果超過其資料類型的最大值而溢位，導致意外的程式行為，可能被用於繞過大小檢查或觸發緩衝區溢位。",
+    "impact": "緩衝區溢位、邏輯漏洞、安全機制繞過。",
+    "mitigation": "在算術運算前進行溢位檢查；使用安全的整數算術函式庫；考慮使用 Rust 等在 debug 模式下自動偵測溢位的語言。"
+  },
+  {
+    "id": "476",
+    "name": "NULL Pointer Dereference",
+    "description": "程式對 NULL 指標進行解引用操作，通常導致程式崩潰。在某些情況下可被攻擊者利用。",
+    "impact": "程式崩潰（DoS）、在特定條件下可能導致程式碼執行。",
+    "mitigation": "在解引用指標前始終檢查是否為 NULL；使用防禦性程式設計；採用靜態分析工具偵測潛在的 NULL 解引用。"
+  },
+  {
+    "id": "732",
+    "name": "Incorrect Permission Assignment for Critical Resource",
+    "description": "應用程式對關鍵資源（檔案、目錄、服務）設定了過於寬鬆的權限，允許未授權的讀取或修改。",
+    "impact": "敏感資料洩漏、設定被篡改、服務被惡意修改。",
+    "mitigation": "遵循最小權限原則；定期審查檔案和目錄權限；使用 chmod 設定適當的權限；避免 world-writable 設定。"
+  }
+]
